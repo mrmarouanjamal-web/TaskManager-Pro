@@ -1,0 +1,2 @@
+[HIGH] study python [DONE]
+[MEDIUM] go gym
