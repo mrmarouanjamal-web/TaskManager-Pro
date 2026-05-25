@@ -1,50 +1,33 @@
-# 📋 TaskManager Pro
+# 📝 TaskManager Pro
 
-Python Task Manager application to organize daily tasks and improve productivity.
+Modern Python task manager with GUI built using Tkinter.
 
 ## 🚀 Features
 
-- Add tasks
-- Show tasks
-- Delete tasks
-- Edit tasks
-- Complete tasks
-- Search tasks
-- Sort by priority
-- Deadlines
-- Save automatically in tasks.txt
+✅ Add tasks  
+✅ Delete tasks  
+✅ Complete tasks  
+✅ Priority system (HIGH / MEDIUM / LOW)  
+✅ Deadline + Time (AM/PM)  
+✅ Overdue alerts ⚠  
+✅ Search tasks 🔍  
+✅ Sort by priority  
+✅ Progress bar 📊  
+✅ Export tasks TXT  
+✅ Statistics (Done / Overdue / Total)  
+✅ JSON save system  
 
-## 🛠 Technologies
+---
 
-- Python
-- Lists
-- Functions
-- File handling
-- Loops
-- Search
-- Sorting
+## 📸 Screenshot
 
-## ▶ Run
+![TaskManager Screenshot](image/Screenshot.png)
+
+---
+
+## ⚙ Installation
+
+Install requirements:
 
 ```bash
-python main.py
-```
-
-## Example Menu
-
-```text
-1. Add task
-2. Show tasks
-3. Delete task
-4. Edit task
-5. Complete task
-6. Search task
-7. Sort tasks
-8. Exit
-```
-
-## Author
-
-Marouan Jamal  
-Computer Science Student  
-Learning Python & Software Development 🚀
+pip install tkcalendar
