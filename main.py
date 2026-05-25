@@ -23,18 +23,17 @@ while True:
 
     choice = input("Choose: ")
 
-    # Add task
     if choice == "1":
         task = input("Task: ")
-        priority = input("Priority (HIGH/MEDIUM/LOW): ")
+        priority = input("Priority (HIGH/MEDIUM/LOW): ").upper()
+        deadline = input("Deadline (YYYY-MM-DD): ")
 
-        full_task = f"[{priority}] {task}"
+        full_task = f"[{priority}] {task} | Due: {deadline}"
         tasks.append(full_task)
 
         save_tasks()
         print("Task added!")
 
-    # Show tasks
     elif choice == "2":
         if len(tasks) == 0:
             print("No tasks")
@@ -43,7 +42,6 @@ while True:
             for i, task in enumerate(tasks):
                 print(f"{i+1}. {task}")
 
-    # Delete task
     elif choice == "3":
         num = int(input("Delete number: "))
 
@@ -51,29 +49,34 @@ while True:
             removed = tasks.pop(num - 1)
             save_tasks()
             print(f"{removed} deleted")
+        else:
+            print("Invalid task number")
 
-    # Edit task
     elif choice == "4":
         num = int(input("Edit number: "))
 
         if 0 < num <= len(tasks):
-            new_task = input("New task: ")
-            tasks[num - 1] = new_task
+            task = input("New task: ")
+            priority = input("Priority (HIGH/MEDIUM/LOW): ").upper()
+            deadline = input("Deadline (YYYY-MM-DD): ")
 
+            tasks[num - 1] = f"[{priority}] {task} | Due: {deadline}"
             save_tasks()
             print("Task updated!")
+        else:
+            print("Invalid task number")
 
-    # Complete task
     elif choice == "5":
         num = int(input("Task number completed: "))
 
         if 0 < num <= len(tasks):
-            tasks[num - 1] += " [DONE]"
+            if "[DONE]" not in tasks[num - 1]:
+                tasks[num - 1] += " [DONE]"
             save_tasks()
-
             print("Task completed!")
+        else:
+            print("Invalid task number")
 
-    # Exit
     elif choice == "6":
         print("Bye!")
         break

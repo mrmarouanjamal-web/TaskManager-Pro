@@ -1,2 +1,3 @@
 [HIGH] study python [DONE]
 [MEDIUM] go gym
+[HIGH] study Python | Due: 2026-06-1
