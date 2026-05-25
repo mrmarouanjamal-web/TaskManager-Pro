@@ -5,17 +5,16 @@ try:
 except:
     tasks = []
 
-
 while True:
     print("\n=== TASK MANAGER ===")
     print("1. Add task")
     print("2. Show tasks")
     print("3. Delete task")
-    print("4. Exit")
+    print("4. Edit task")
+    print("5. Exit")
 
     choice = input("Choose: ")
 
-    # Add task
     if choice == "1":
         task = input("Enter task: ")
         tasks.append(task)
@@ -26,13 +25,11 @@ while True:
 
         print("Task added!")
 
-    # Show tasks
     elif choice == "2":
         print("\nTasks:")
         for i, task in enumerate(tasks):
             print(f"{i+1}. {task}")
 
-    # Delete task
     elif choice == "3":
         num = int(input("Task number to delete: "))
 
@@ -44,9 +41,26 @@ while True:
                     file.write(t + "\n")
 
             print(f"{removed} deleted")
+        else:
+            print("Invalid task number")
 
-    # Exit
     elif choice == "4":
+        num = int(input("Task number to edit: "))
+
+        if 0 < num <= len(tasks):
+            old_task = tasks[num - 1]
+            new_task = input("Enter new task: ")
+            tasks[num - 1] = new_task
+
+            with open("tasks.txt", "w") as file:
+                for t in tasks:
+                    file.write(t + "\n")
+
+            print(f"{old_task} updated to {new_task}")
+        else:
+            print("Invalid task number")
+
+    elif choice == "5":
         print("Bye!")
         break
 
