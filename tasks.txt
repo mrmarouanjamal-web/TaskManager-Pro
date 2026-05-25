@@ -1,4 +1,5 @@
 [HIGH] study python [DONE]
-[MEDIUM] go gym
 [HIGH] study Python | Due: 2026-06-1
 [HIGH] study python | Due: 2026-06-01
+[MEDIUM] go gym
+[LOW] study python | Due: 2026-06-1
