@@ -1,4 +1,3 @@
-# Load tasks from file
 try:
     with open("tasks.txt", "r", encoding="utf-8") as file:
         tasks = file.read().splitlines()
@@ -19,7 +18,8 @@ while True:
     print("3. Delete task")
     print("4. Edit task")
     print("5. Complete task")
-    print("6. Exit")
+    print("6. Search task")
+    print("7. Exit")
 
     choice = input("Choose: ")
 
@@ -27,24 +27,20 @@ while True:
         task = input("Task: ")
         priority = input("Priority (HIGH/MEDIUM/LOW): ").upper()
         deadline = input("Deadline (YYYY-MM-DD): ")
-
-        full_task = f"[{priority}] {task} | Due: {deadline}"
-        tasks.append(full_task)
-
+        tasks.append(f"[{priority}] {task} | Due: {deadline}")
         save_tasks()
         print("Task added!")
 
     elif choice == "2":
-        if len(tasks) == 0:
+        print("\nTasks:")
+        if not tasks:
             print("No tasks")
         else:
-            print("\nTasks:")
             for i, task in enumerate(tasks):
                 print(f"{i+1}. {task}")
 
     elif choice == "3":
         num = int(input("Delete number: "))
-
         if 0 < num <= len(tasks):
             removed = tasks.pop(num - 1)
             save_tasks()
@@ -54,12 +50,10 @@ while True:
 
     elif choice == "4":
         num = int(input("Edit number: "))
-
         if 0 < num <= len(tasks):
             task = input("New task: ")
             priority = input("Priority (HIGH/MEDIUM/LOW): ").upper()
             deadline = input("Deadline (YYYY-MM-DD): ")
-
             tasks[num - 1] = f"[{priority}] {task} | Due: {deadline}"
             save_tasks()
             print("Task updated!")
@@ -68,7 +62,6 @@ while True:
 
     elif choice == "5":
         num = int(input("Task number completed: "))
-
         if 0 < num <= len(tasks):
             if "[DONE]" not in tasks[num - 1]:
                 tasks[num - 1] += " [DONE]"
@@ -78,6 +71,19 @@ while True:
             print("Invalid task number")
 
     elif choice == "6":
+        keyword = input("Search keyword: ").lower()
+        print("\nSearch results:")
+        found = False
+
+        for i, task in enumerate(tasks):
+            if keyword in task.lower():
+                print(f"{i+1}. {task}")
+                found = True
+
+        if not found:
+            print("No matching tasks found.")
+
+    elif choice == "7":
         print("Bye!")
         break
 
