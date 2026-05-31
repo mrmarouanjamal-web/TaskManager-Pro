@@ -4,9 +4,22 @@ from tkcalendar import DateEntry
 from datetime import datetime
 import json
 
+try:
+    from plyer import notification
+except:
+    notification = None
+
 tasks = []
 current_indices = []
 notified_tasks = set()
+current_theme = "dark"
+
+themes = {
+    "dark": {"bg": "#121212", "box": "#222222", "fg": "white", "progress": "#00ff55"},
+    "blue": {"bg": "#0b1f3a", "box": "#143a63", "fg": "white", "progress": "#00aaff"},
+    "red": {"bg": "#2a0f0f", "box": "#4a1d1d", "fg": "white", "progress": "#ff4444"},
+}
+
 
 def load_tasks():
     global tasks
@@ -16,9 +29,11 @@ def load_tasks():
     except:
         tasks = []
 
+
 def save_tasks():
     with open("tasks.json", "w", encoding="utf-8") as file:
         json.dump(tasks, file, ensure_ascii=False, indent=4)
+
 
 def get_due_datetime(task):
     try:
@@ -26,6 +41,26 @@ def get_due_datetime(task):
         return datetime.strptime(due, "%Y-%m-%d %I:%M %p")
     except:
         return None
+
+
+def time_left_text(due_date):
+    diff = due_date - datetime.now()
+    seconds = int(diff.total_seconds())
+
+    if seconds < 0:
+        return "[OVERDUE]"
+
+    days = seconds // 86400
+    hours = (seconds % 86400) // 3600
+    minutes = (seconds % 3600) // 60
+
+    if days > 0:
+        return f"{days} days left"
+    elif hours > 0:
+        return f"{hours} hours left"
+    else:
+        return f"{minutes} minutes left"
+
 
 def refresh(task_list=None):
     global current_indices
@@ -37,34 +72,67 @@ def refresh(task_list=None):
 
     done = 0
     overdue = 0
-    now = datetime.now()
+    pending = 0
 
     for real_index, task in display_tasks:
         color = "white"
-        text = task
+
+        if "[HIGH]" in task:
+            text = "🔴 " + task
+        elif "[MEDIUM]" in task:
+            text = "🟡 " + task
+        elif "[LOW]" in task:
+            text = "🟢 " + task
+        else:
+            text = task
 
         if "[DONE]" in task:
             done += 1
+            color = "#00ff55"
+            text = "✅ " + text
+        else:
+            pending += 1
 
         due_date = get_due_datetime(task)
 
         if due_date and "[DONE]" not in task:
-            days_left = (due_date - now).days
+            left = time_left_text(due_date)
 
-            if due_date < now:
+            if left == "[OVERDUE]":
                 color = "red"
                 overdue += 1
+                text = "🚨 " + text
                 text += " [OVERDUE]"
+            elif "minutes" in left:
+                color = "orange"
+                text += f" ({left})"
+            elif "hours" in left:
+                color = "yellow"
+                text += f" ({left})"
             else:
-                text += f" ({days_left}d left)"
+                color = "white"
+                text += f" ({left})"
 
-        listbox.insert(tk.END, text)
+        listbox.insert(tk.END, "   " + text + "\n")
         listbox.itemconfig(tk.END, fg=color)
         current_indices.append(real_index)
 
     total = len(tasks)
     progress["value"] = (done / max(total, 1)) * 100
-    stats_label.config(text=f"Tasks: {total}   |   Done: {done}   |   Overdue: {overdue}")
+
+    total_card.config(text=f"Tasks: {total}")
+    done_card.config(text=f"Done: {done}")
+    pending_card.config(text=f"Pending: {pending}")
+    overdue_card.config(text=f"Overdue: {overdue}")
+
+    stats_label.config(
+        text=f"Tasks: {total} | Done: {done} | Pending: {pending} | Overdue: {overdue}"
+    )
+
+    chart_label.config(
+        text=f"📊 Completed: {done}   Pending: {pending}   Overdue: {overdue}"
+    )
+
 
 def add_task():
     task = task_entry.get().strip()
@@ -85,9 +153,9 @@ def add_task():
     refresh()
     task_entry.delete(0, tk.END)
 
+
 def delete_task():
     selected = listbox.curselection()
-
     if selected:
         real_index = current_indices[selected[0]]
         tasks.pop(real_index)
@@ -96,44 +164,72 @@ def delete_task():
     else:
         messagebox.showwarning("Warning", "Select a task first")
 
+
 def complete_task():
     selected = listbox.curselection()
-
     if selected:
         real_index = current_indices[selected[0]]
-
         if "[DONE]" not in tasks[real_index]:
             tasks[real_index] += " [DONE]"
-
         save_tasks()
         refresh()
     else:
         messagebox.showwarning("Warning", "Select a task first")
 
-def sort_tasks():
-    order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 
-    tasks.sort(
-        key=lambda task: order.get(task.split("]")[0].replace("[", ""), 99)
-    )
+def edit_task():
+    selected = listbox.curselection()
+    if not selected:
+        messagebox.showwarning("Warning", "Select a task first")
+        return
+
+    real_index = current_indices[selected[0]]
+
+    task = task_entry.get().strip()
+    priority = priority_box.get()
+    date = date_entry.get()
+    hour = hour_box.get()
+    minute = minute_box.get()
+    ampm = ampm_box.get()
+
+    if task == "":
+        messagebox.showwarning("Warning", "Write new task text first")
+        return
+
+    tasks[real_index] = f"[{priority}] {task} | Due:{date} {hour}:{minute} {ampm}"
 
     save_tasks()
     refresh()
+    task_entry.delete(0, tk.END)
+
+
+def clear_all_tasks():
+    if messagebox.askyesno("Confirm", "Delete all tasks?"):
+        tasks.clear()
+        save_tasks()
+        refresh()
+
+
+def sort_tasks():
+    order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+    tasks.sort(key=lambda task: order.get(task.split("]")[0].replace("[", ""), 99))
+    save_tasks()
+    refresh()
+
 
 def search_tasks():
     keyword = search_entry.get().lower().strip()
-
     if keyword == "":
         refresh()
         return
 
     results = []
-
     for i, task in enumerate(tasks):
         if keyword in task.lower():
             results.append((i, task))
 
     refresh(results)
+
 
 def export_tasks():
     with open("my_tasks.txt", "w", encoding="utf-8") as file:
@@ -142,9 +238,12 @@ def export_tasks():
 
     messagebox.showinfo("Export", "Tasks exported to my_tasks.txt")
 
+
 def update_clock():
     clock_label.config(text=datetime.now().strftime("%H:%M:%S"))
-    root.after(1000, update_clock)
+    refresh()
+    root.after(60000, update_clock)
+
 
 def check_reminders():
     now = datetime.now().strftime("%Y-%m-%d %I:%M %p")
@@ -160,14 +259,74 @@ def check_reminders():
 
             if due_text == now and task not in notified_tasks:
                 notified_tasks.add(task)
+
+                if notification is not None:
+                    try:
+                        notification.notify(
+                            title="Task Reminder",
+                            message=f"Deadline reached:\n{task}",
+                            timeout=10
+                        )
+                    except:
+                        pass
+
                 messagebox.showwarning("Reminder", f"Deadline reached:\n{task}")
 
     root.after(30000, check_reminders)
 
-# Window
+
+def apply_theme(theme_name):
+    global current_theme
+    current_theme = theme_name
+    theme = themes[theme_name]
+
+    root.configure(bg=theme["bg"])
+    main.configure(bg=theme["bg"])
+    theme_frame.configure(bg=theme["bg"])
+    form.configure(bg=theme["bg"])
+    buttons_frame.configure(bg=theme["bg"])
+    search_frame.configure(bg=theme["bg"])
+    list_frame.configure(bg=theme["bg"])
+    time_frame.configure(bg=theme["bg"])
+    cards_frame.configure(bg=theme["bg"])
+
+    for widget in main.winfo_children():
+        try:
+            widget.configure(bg=theme["bg"], fg=theme["fg"])
+        except:
+            pass
+
+    for widget in form.winfo_children():
+        try:
+            widget.configure(bg=theme["bg"], fg=theme["fg"])
+        except:
+            pass
+
+    for widget in theme_frame.winfo_children():
+        try:
+            widget.configure(fg="white")
+        except:
+            pass
+
+    listbox.configure(bg=theme["box"], fg=theme["fg"])
+
+    style.configure(
+        "green.Horizontal.TProgressbar",
+        background=theme["progress"],
+        troughcolor="#333333",
+        thickness=20
+    )
+
+
 root = tk.Tk()
+
+try:
+    root.iconbitmap("app_icon.ico")
+except:
+    pass
+
 root.title("TaskManager Pro")
-root.geometry("900x720")
+root.geometry("980x820")
 root.configure(bg="#121212")
 
 style = ttk.Style()
@@ -194,11 +353,18 @@ title_label = tk.Label(
 )
 title_label.pack(pady=10)
 
+theme_frame = tk.Frame(main, bg="#121212")
+theme_frame.pack(pady=3)
+
+tk.Button(theme_frame, text="Dark", bg="#333333", fg="white", command=lambda: apply_theme("dark")).grid(row=0, column=0, padx=4)
+tk.Button(theme_frame, text="Blue", bg="#0066ff", fg="white", command=lambda: apply_theme("blue")).grid(row=0, column=1, padx=4)
+tk.Button(theme_frame, text="Red", bg="#cc0000", fg="white", command=lambda: apply_theme("red")).grid(row=0, column=2, padx=4)
+
 form = tk.Frame(main, bg="#121212")
 form.pack()
 
 tk.Label(form, text="Task", bg="#121212", fg="white").grid(row=0, column=0, columnspan=3)
-task_entry = tk.Entry(form, width=55, font=("Arial", 12))
+task_entry = tk.Entry(form, width=60, font=("Arial", 12))
 task_entry.grid(row=1, column=0, columnspan=3, pady=5)
 
 tk.Label(form, text="Priority", bg="#121212", fg="white").grid(row=2, column=0)
@@ -231,9 +397,11 @@ buttons_frame.pack(pady=8)
 
 buttons = [
     ("Add", "#00aa00", add_task),
+    ("Edit", "#ffaa00", edit_task),
     ("Delete", "#ff2222", delete_task),
     ("Complete", "#0066ff", complete_task),
     ("Sort", "#9900cc", sort_tasks),
+    ("Clear All", "#aa0000", clear_all_tasks),
     ("Export TXT", "#444444", export_tasks),
 ]
 
@@ -243,17 +411,35 @@ for i, (text, color, command) in enumerate(buttons):
         text=text,
         bg=color,
         fg="white",
-        width=14,
+        width=12,
         height=2,
         bd=0,
         command=command
-    ).grid(row=0, column=i, padx=5)
+    ).grid(row=0, column=i, padx=4)
 
-progress = ttk.Progressbar(main, length=650, style="green.Horizontal.TProgressbar")
+progress = ttk.Progressbar(main, length=700, style="green.Horizontal.TProgressbar")
 progress.pack(pady=10)
 
 stats_label = tk.Label(main, bg="#121212", fg="white", font=("Arial", 15, "bold"))
-stats_label.pack(pady=5)
+stats_label.pack(pady=3)
+
+cards_frame = tk.Frame(main, bg="#121212")
+cards_frame.pack(pady=8)
+
+total_card = tk.Label(cards_frame, text="Tasks: 0", bg="#1c1c1c", fg="white", font=("Segoe UI", 13, "bold"), width=15, height=3)
+total_card.grid(row=0, column=0, padx=8)
+
+done_card = tk.Label(cards_frame, text="Done: 0", bg="#003d1f", fg="white", font=("Segoe UI", 13, "bold"), width=15, height=3)
+done_card.grid(row=0, column=1, padx=8)
+
+pending_card = tk.Label(cards_frame, text="Pending: 0", bg="#3d3300", fg="white", font=("Segoe UI", 13, "bold"), width=15, height=3)
+pending_card.grid(row=0, column=2, padx=8)
+
+overdue_card = tk.Label(cards_frame, text="Overdue: 0", bg="#3d0000", fg="white", font=("Segoe UI", 13, "bold"), width=15, height=3)
+overdue_card.grid(row=0, column=3, padx=8)
+
+chart_label = tk.Label(main, bg="#121212", fg="white", font=("Arial", 13, "bold"))
+chart_label.pack(pady=3)
 
 search_frame = tk.Frame(main, bg="#121212")
 search_frame.pack(pady=6)
@@ -271,7 +457,7 @@ tk.Button(
     command=search_tasks
 ).grid(row=0, column=1, padx=5)
 
-list_frame = tk.Frame(main, bg="#121212")
+list_frame = tk.Frame(main, bg="#121212", bd=2, relief="flat")
 list_frame.pack(pady=10, fill="both", expand=True)
 
 scrollbar = tk.Scrollbar(list_frame)
@@ -279,16 +465,44 @@ scrollbar.pack(side="right", fill="y")
 
 listbox = tk.Listbox(
     list_frame,
-    width=100,
-    height=12,
-    font=("Arial", 12),
-    bg="#222222",
+    width=120,
+    height=14,
+    font=("Segoe UI", 14, "bold"),
+    bg="#1c1c1c",
     fg="white",
-    yscrollcommand=scrollbar.set
+    selectbackground="#0066ff",
+    selectforeground="white",
+    relief="flat",
+    bd=0,
+    highlightthickness=1,
+    highlightbackground="#333",
+    yscrollcommand=scrollbar.set,
+    activestyle="none"
 )
-listbox.pack(side="left", fill="both", expand=True)
+
+listbox.pack(
+    side="left",
+    fill="both",
+    expand=True,
+    padx=10,
+    pady=10
+)
 
 scrollbar.config(command=listbox.yview)
+
+def load_selected_task(event=None):
+    selected = listbox.curselection()
+
+    if not selected:
+        return
+
+    real_index = current_indices[selected[0]]
+    task_text = tasks[real_index]
+
+    task_entry.delete(0, tk.END)
+    task_entry.insert(0, task_text)
+
+listbox.bind("<Double-Button-1>", load_selected_task)
 
 load_tasks()
 refresh()
